@@ -27,7 +27,8 @@ int main(int argv, char **args){
     int is_master_process = start_work_pool(wp);
 
     if (is_master_process) {
-        wait(NULL); 
+        wait_for_worker_pool(wp);
+
         worker_pool_ctx_free(wp);
         printf("master process exit\n");
     }
