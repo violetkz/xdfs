@@ -1,0 +1,6 @@
+
+src_files = [
+'xd_server_base.c',
+'xd_worker_pool.c'
+]
+Program(src_files)
