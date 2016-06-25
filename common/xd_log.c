@@ -1,5 +1,6 @@
 
 #include <stdio.h>
+#include <time.h>
 #include "xd_common_conf.h"
 #include "xd_log.h"
 
@@ -16,13 +17,38 @@ static const char * log_message_tbl[] = {
     NULL
 };
 
+char *make_time_tag(char *buf, size_t buf_len) {
+
+    time_t now_time = time(NULL);
+    struct tm tm_time;
+#ifndef _WIN32
+    localtime_r(&now_time, &tm_time);
+#else
+    localtime_s(&tm_time, &now_time);
+#endif
+
+    snprintf(buf, buf_len, "%d-%02d-%02d %02d:%02d:%02d",
+            1900+tm_time.tm_year,
+            1+tm_time.tm_mon,
+            tm_time.tm_mday,
+            tm_time.tm_hour,
+            tm_time.tm_min,
+            tm_time.tm_sec);
+
+    return buf;
+}
+
 void   log_default_handler(const char   *log_domain,
                            xd_log_level  log_level,
                            const char   *message,
                            void *        unused_data) {
 
-    fprintf(stdout, "-%s- [%-8s]: %s\n", log_domain,
+    char buf[128];
+    
+
+    fprintf(stdout, "%s[%s]-%s: %s\n",make_time_tag(buf, 128),
             log_message_tbl[log_level],
+            log_domain,
             message
            );
 }
