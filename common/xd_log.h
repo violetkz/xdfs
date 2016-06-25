@@ -52,12 +52,9 @@ void simple_log(const char *domain, xd_log_level level, const char* fmt, ...);
 
 /* some useful macroes for logging */
 
-#define xd_debug(FMT, ...) simple_log(XD_LOG_STR, XD_LOG_LEVEL_DEBUG, FMT, __VA_ARGS__)
-#define xd_info(FMT, ...)  simple_log(XD_LOG_STR, XD_LOG_LEVEL_INFO, FMT, __VA_ARGS__)
-#define xd_warn(FMT, ...)  simple_log(XD_LOG_STR, XD_LOG_LEVEL_WARNING, FMT, __VA_ARGS__)
-#define xd_err(FMT, ...)   simple_log(XD_LOG_STR, XD_LOG_LEVEL_ERROR, FMT, __VA_ARGS__)
-
-#define xd_fn_trace_s       simple_log(XD_LOG_STR, XD_LOG_LEVEL_DEBUG, "[func: %s --->]", __func__) 
-#define xd_fn_trace_e       simple_log(XD_LOG_STR, XD_LOG_LEVEL_DEBUG, "[func: %s <---]", __func__) 
+#define xd_debug(...) simple_log(XD_LOG_STR, XD_LOG_LEVEL_DEBUG, __VA_ARGS__)
+#define xd_info(...)  simple_log(XD_LOG_STR, XD_LOG_LEVEL_INFO,  __VA_ARGS__)
+#define xd_warn(...)  simple_log(XD_LOG_STR, XD_LOG_LEVEL_WARNING,__VA_ARGS__)
+#define xd_err(...)   simple_log(XD_LOG_STR, XD_LOG_LEVEL_ERROR,__VA_ARGS__)
 
 #endif

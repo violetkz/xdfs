@@ -58,7 +58,7 @@ int start_work_pool(worker_pool_ctx *ctx) {
             }
             else {
                 is_in_master_process = -1;            
-                xd_err("fork failed");
+                xd_err("fork failed :%d", is_in_master_process);
             }
         }
 
