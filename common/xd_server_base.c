@@ -6,12 +6,13 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 
+#include "xd_log.h"
 #include "xd_worker_pool.h"
 
 
 int worker_func(void *param) {
-    printf("Nothing to doing. ==\n");
-    sleep(1);
+    printf("child: Nothing to doing. ==\n");
+    //sleep(1);
     return 0;
 }
 
@@ -24,15 +25,12 @@ int main(int argv, char **args){
     }
     worker_pool_ctx_set_action(wp, worker_func, NULL);
 
-    int is_master_process = start_work_pool(wp);
+    start_work_pool(wp);
 
-    if (is_master_process) {
-        wait_for_worker_pool(wp);
+    wait_for_worker_pool(wp);
 
-        worker_pool_ctx_free(wp);
-        printf("master process exit\n");
-    }
-
+    worker_pool_ctx_free(wp);
+    xd_debug("master process exit");
 
     return 0;
 }

@@ -58,15 +58,15 @@ int start_work_pool(worker_pool_ctx *ctx) {
             }
             else {
                 is_in_master_process = -1;            
-                xd_err("fork failed :%d", is_in_master_process);
             }
         }
 
         if (! is_in_master_process) {
-            ctx->action(ctx->action_param);
+            int rc = ctx->action(ctx->action_param);
+            _exit(rc);
         }
         else {
-            xd_debug("is in master\n");
+            xd_debug("is in master.");
         }
     }
     
@@ -102,7 +102,7 @@ void wait_for_worker_pool(worker_pool_ctx *ctx) {
                     int ret; 
                     if (WIFEXITED(status))        {
                         ret = WEXITSTATUS(status); 
-                        xd_debug("child process %d exited with return code %d\n", p, ret);
+                        xd_debug("child process %d exited with return code %d", p, ret);
                     }
                     //todo, handle exit status. 
                     else if (WIFSIGNALED(status)) { ret = -2; }
@@ -113,7 +113,7 @@ void wait_for_worker_pool(worker_pool_ctx *ctx) {
                 }
             }
             else {
-                xd_err("func wait failed");
+                xd_err("func wait failed.");
             }
         }
     }
