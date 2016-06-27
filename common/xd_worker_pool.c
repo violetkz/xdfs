@@ -40,7 +40,7 @@ void worker_pool_ctx_set_action(worker_pool_ctx *ctx,
 }
 
 
-int start_work_pool(worker_pool_ctx *ctx) {
+int worker_pool_start(worker_pool_ctx *ctx) {
     
     //int rc = 0;
     int is_in_master_process = 1;
@@ -87,7 +87,7 @@ int is_worker_process(worker_pool_ctx *ctx, pid_t p) {
     return rc;
 }
 
-void wait_for_worker_pool(worker_pool_ctx *ctx) {
+void worker_pool_wait(worker_pool_ctx *ctx) {
     
     int status; 
     if (ctx) {

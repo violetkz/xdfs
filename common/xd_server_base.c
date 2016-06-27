@@ -25,9 +25,9 @@ int main(int argv, char **args){
     }
     worker_pool_ctx_set_action(wp, worker_func, NULL);
 
-    start_work_pool(wp);
+    worker_pool_start(wp);
 
-    wait_for_worker_pool(wp);
+    worker_pool_wait(wp);
 
     worker_pool_ctx_free(wp);
     xd_debug("master process exit");

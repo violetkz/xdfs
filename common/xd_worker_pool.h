@@ -20,10 +20,10 @@ void worker_pool_ctx_set_action(worker_pool_ctx *ctx,
                          void *param); 
 
 
-int start_work_pool(worker_pool_ctx *ctx); 
+int worker_pool_start(worker_pool_ctx *ctx); 
 
-void wait_for_worker_pool(worker_pool_ctx *ctx);
+void worker_pool_wait(worker_pool_ctx *ctx);
 
-void kill_worker_pool(worker_pool_ctx *ctx);
+void worker_pool_kill(worker_pool_ctx *ctx);
 
 #endif
