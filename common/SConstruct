@@ -1,7 +1,12 @@
 
 src_files = [
-'xd_server_base.c',
-'xd_worker_pool.c',
-'xd_log.c'
+    'xd_server_base.c',
+    'xd_worker_pool.c',
+    'xd_log.c',
+    'xd_locker.c'
 ]
-Program(src_files)
+
+libs = [
+    'pthread'
+]
+Program(src_files, LIBS=libs)
