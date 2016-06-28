@@ -6,7 +6,8 @@ src_files = [
     'xd_locker.c'
 ]
 
-libs = [
-    'pthread'
-]
+#libs = [
+#    'pthread'
+#]
+libs=[]
 Program(src_files, LIBS=libs)

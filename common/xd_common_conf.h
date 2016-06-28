@@ -3,6 +3,7 @@
 
 #define XD_LOG_STR          "xdcom"
 #define XD_LOG_BUFF_LEN     2048
+#define err_str_buf_len     256
 
 
 #define XD_RET_OK       0

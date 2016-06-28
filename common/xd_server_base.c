@@ -15,21 +15,22 @@
 
 typedef struct {
     int *count;
-    xd_shm_lock_t lock;
+    xd_shmlock_t *lock;
 } count_t;
+
 int worker_func(void *param) {
     
     count_t *c =  param;
     
-    xd_shm_lock(&(c->lock));
+    xd_shmlock_lock(c->lock);
     *c->count +=1;
     printf("%d\n", *(c->count));
     //sleep(1);
-    xd_shm_unlock(&(c->lock));
+    xd_shmlock_unlock(c->lock);
     return 0;
 }
 
-int * test(){
+int *test(){
 
     int fd = open("/dev/zero", O_RDWR, 0);
     if (fd == -1) {
@@ -37,27 +38,35 @@ int * test(){
         return NULL;
     }
 
-    int *count = mmap(0, sizeof(int), 
+    int *c = mmap(0, sizeof(int), 
                            PROT_READ|PROT_WRITE, 
                            MAP_SHARED, fd, 0);
+    if (c == MAP_FAILED) {
+        char err_str_buf[err_str_buf_len];
+        strerror_r(errno, err_str_buf, err_str_buf_len);
+        
+        xd_err("map failed: %s\n", err_str_buf);
+    }
 
     close(fd);
-    return count;
+
+    return c;
 }
 
 
 int main(int argv, char **args){
 
-    //    int listen_sock = create_listen_socket("0.0.0.0", 7878);
     worker_pool_ctx *wp = worker_pool_ctx_new(10);
-    if (!wp) { 
+
+    if (wp == NULL) { 
         exit(1);
     }
 
     count_t  c;
+
     c.count = test();
     *(c.count) = 0;
-    xd_shm_init(&c.lock);
+    c.lock = xd_shmlock_new();
     
     worker_pool_ctx_set_action(wp, worker_func, &c);
 
@@ -68,6 +77,6 @@ int main(int argv, char **args){
     worker_pool_ctx_free(wp);
     xd_debug("master process exit");
 
-    xd_shm_destory(&c.lock);
+    xd_shmlock_free(c.lock);
     return 0;
 }
