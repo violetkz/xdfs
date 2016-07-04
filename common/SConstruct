@@ -6,8 +6,17 @@ src_files = [
     'xd_locker.c'
 ]
 
-#libs = [
-#    'pthread'
-#]
-libs=[]
-Program(src_files, LIBS=libs)
+base_src_files = [
+    'xd_worker_pool.c',
+    'xd_log.c',
+    'xd_locker.c'
+]
+
+StaticLibrary('base', base_src_files)
+
+libs = [
+    'pthread',
+    'base'
+]
+#libs=[]
+Program('ut', 'test.c', LIBS=libs, LIBPATH='.')
