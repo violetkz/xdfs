@@ -1,5 +1,4 @@
 
-
 #include <sys/types.h>
 #include <sys/mman.h>
 #include <fcntl.h>
@@ -13,7 +12,6 @@
 #include "xd_log.h"
 
 
-
 xd_shmlock_t *xd_shmlock_new() {
 
     xd_shmlock_t *new_lock = malloc(sizeof(xd_shmlock_t));
@@ -21,17 +19,33 @@ xd_shmlock_t *xd_shmlock_new() {
     if (new_lock == NULL) 
         return NULL;
     
+#if defined(__linux__)
     int fd = open("/dev/zero", O_RDWR, 0);
     if (fd == -1) {
         xd_err("open /dev/zero failed");
         return NULL;
     }
+#elif defined(__APPLE__)
+    const char *lock_file_name = "/tmp/xd.lock2";
+    int fd = shm_open(lock_file_name, O_RDWR|O_CREAT, S_IRUSR|S_IWUSR);
+    ftruncate(fd, sizeof(pthread_mutex_t));
+#else
+    #error "un-supported OS"
+#endif
 
     new_lock->mutex_ptr = mmap(0, sizeof(pthread_mutex_t), 
                            PROT_READ|PROT_WRITE, 
                            MAP_SHARED, fd, 0);
 
+    if (new_lock->mutex_ptr == MAP_FAILED) {
+        xd_err("map failed");
+    }
+
+#if defined(__liunx__)
     close(fd);
+#elif defined(__APPLE__)
+    shm_unlink(lock_file_name);
+#endif
 
     pthread_mutexattr_t mutex_attr;
     pthread_mutexattr_setpshared(&mutex_attr, PTHREAD_PROCESS_SHARED);

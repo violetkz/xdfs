@@ -32,15 +32,25 @@ int worker_func(void *param) {
 
 int *test(){
 
+#if defined(__linux__)
     int fd = open("/dev/zero", O_RDWR, 0);
     if (fd == -1) {
         xd_err("open /dev/zero failed");
         return NULL;
     }
+#elif defined(__APPLE__)
+    const char *lock_file_name = "/var/tmp/xd.lock";
+    int fd = shm_open(lock_file_name, O_RDWR|O_CREAT, S_IRUSR|S_IWUSR);
+    ftruncate(fd, sizeof(int));
+#else
+    #error "un-supported OS"
+#endif
 
+    printf("xx0\n");
     int *c = mmap(0, sizeof(int), 
                            PROT_READ|PROT_WRITE, 
                            MAP_SHARED, fd, 0);
+    printf("xx: %p", c);
     if (c == MAP_FAILED) {
         char err_str_buf[err_str_buf_len];
         strerror_r(errno, err_str_buf, err_str_buf_len);
@@ -48,7 +58,13 @@ int *test(){
         xd_err("map failed: %s\n", err_str_buf);
     }
 
+    printf("xx: %p", c);
+
+#if defined(__liunx__)
     close(fd);
+#elif defined(__APPLE__)
+    shm_unlink(lock_file_name);
+#endif
 
     return c;
 }
@@ -64,10 +80,13 @@ int main(int argv, char **args){
 
     count_t  c;
 
+    printf("0\n");
     c.count = test();
     *(c.count) = 0;
+    printf("1\n");
     c.lock = xd_shmlock_new();
     
+    printf("2\n");
     worker_pool_ctx_set_action(wp, worker_func, &c);
 
     worker_pool_start(wp);
