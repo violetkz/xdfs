@@ -8,67 +8,44 @@
 #include <sys/mman.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <event2/event.h>
+#include <event2/http.h>
 
 #include "xd_log.h"
 #include "xd_worker_pool.h"
 #include "xd_locker.h"
 
-typedef struct {
-    int *count;
-    xd_shmlock_t *lock;
-} count_t;
+int xd_init_event(const char *ip, int port) {
+	struct event_base *base;
+	struct evhttp *http;
+	struct evhttp_bound_socket *handle;
 
-int worker_func(void *param) {
-    
-    count_t *c =  param;
-    
-    xd_shmlock_lock(c->lock);
-    *c->count +=1;
-    printf("%d\n", *(c->count));
-    //sleep(1);
-    xd_shmlock_unlock(c->lock);
-    return 0;
-}
-
-int *test(){
-
-#if defined(__linux__)
-    int fd = open("/dev/zero", O_RDWR, 0);
-    if (fd == -1) {
-        xd_err("open /dev/zero failed");
-        return NULL;
-    }
-#elif defined(__APPLE__)
-    const char *lock_file_name = "/var/tmp/xd.lock";
-    int fd = shm_open(lock_file_name, O_RDWR|O_CREAT, S_IRUSR|S_IWUSR);
-    ftruncate(fd, sizeof(int));
+	unsigned short port = 0;
+#ifdef WIN32
+	WSADATA WSAData;
+	WSAStartup(0x101, &WSAData);
 #else
-    #error "un-supported OS"
+	if (signal(SIGPIPE, SIG_IGN) == SIG_ERR)
+		return (1);
 #endif
+	if (argc < 2) {
+		syntax();
+		return 1;
+	}
 
-    printf("xx0\n");
-    int *c = mmap(0, sizeof(int), 
-                           PROT_READ|PROT_WRITE, 
-                           MAP_SHARED, fd, 0);
-    printf("xx: %p", c);
-    if (c == MAP_FAILED) {
-        char err_str_buf[err_str_buf_len];
-        strerror_r(errno, err_str_buf, err_str_buf_len);
-        
-        xd_err("map failed: %s\n", err_str_buf);
-    }
+	base = event_base_new();
+	if (!base) {
+		fprintf(stderr, "Couldn't create an event_base: exiting\n");
+		return 1;
+ 	}
 
-    printf("xx: %p", c);
-
-#if defined(__liunx__)
-    close(fd);
-#elif defined(__APPLE__)
-    shm_unlink(lock_file_name);
-#endif
-
-    return c;
+	/* Create a new evhttp object to handle requests. */
+	http = evhttp_new(base);
+	if (!http) {
+		fprintf(stderr, "couldn't create evhttp. Exiting.\n");
+		return 1;
+	}
 }
-
 
 int main(int argv, char **args){
 
@@ -78,15 +55,6 @@ int main(int argv, char **args){
         exit(1);
     }
 
-    count_t  c;
-
-    printf("0\n");
-    c.count = test();
-    *(c.count) = 0;
-    printf("1\n");
-    c.lock = xd_shmlock_new();
-    
-    printf("2\n");
     worker_pool_ctx_set_action(wp, worker_func, &c);
 
     worker_pool_start(wp);

@@ -8,6 +8,22 @@
 #include "xd_worker_pool.h"
 #include "xd_log.h"
 
+static int xd_get_active_cpu_num() {
+    long ncpu = sysconf(_SC_NPROCESSORS_ONLN); 
+    if (ncpu == -1) {
+        xd_info("this os can't get CPU number from sysconf(_SC_NPROCESSORS_ONLN)");
+        ncpu = 1;
+    }
+    return ncpu;
+}
+
+worker_pool_ctx *worker_pool_ctx_auto_new() {
+
+    int max_worker_num = xd_get_active_cpu_num() + 1;
+    
+    return worker_pool_ctx_new(max_worker_num);
+}
+
 worker_pool_ctx *worker_pool_ctx_new(int max_worker_num) {
 
     worker_pool_ctx *new_ctx = malloc(sizeof(worker_pool_ctx));

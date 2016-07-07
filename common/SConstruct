@@ -6,8 +6,25 @@ src_files = [
     'xd_locker.c'
 ]
 
-#libs = [
-#    'pthread'
-#]
-libs=[]
-Program(src_files, LIBS=libs)
+base_src_files = [
+    'xd_worker_pool.c',
+    'xd_log.c',
+    'xd_locker.c'
+]
+
+StaticLibrary('base', base_src_files)
+
+libs = [
+    'pthread',
+    'base'
+]
+#libs=[]
+
+import os,sys
+if sys.platform.startswith('darwin'):
+    CFLAGS = " -I/usr/local/include "
+    LIBPATH = [".", "/usr/local/lib"]
+else:
+    CFLAGS = " "
+
+Program('ut', 'test.c',CFLAGS=CFLAGS,LIBS=libs, LIBPATH=LIBPATH)

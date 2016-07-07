@@ -57,4 +57,11 @@ void simple_log(const char *domain, xd_log_level level, const char* fmt, ...);
 #define xd_warn(...)  simple_log(XD_LOG_STR, XD_LOG_LEVEL_WARNING,__VA_ARGS__)
 #define xd_err(...)   simple_log(XD_LOG_STR, XD_LOG_LEVEL_ERROR,__VA_ARGS__)
 
+#define XD_LOG_INTERNAL_BUF_LEN 512
+#define xd_errno(msg,errno_) {                                  \
+    char err_str_buf[XD_LOG_INTERNAL_BUF_LEN];                  \
+    strerror_r((errno_), err_str_buf, XD_LOG_INTERNAL_BUF_LEN); \
+    simple_log(XD_LOG_STR, XD_LOG_LEVEL_ERROR, "%s : %s", (msg), err_str_buf); \
+}
+
 #endif
