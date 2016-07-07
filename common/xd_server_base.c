@@ -13,47 +13,37 @@
 #include "xd_worker_pool.h"
 #include "xd_locker.h"
 
-typedef struct {
-    int *count;
-    xd_shmlock_t *lock;
-} count_t;
+int xd_init_event(const char *ip, int port) {
+	struct event_base *base;
+	struct evhttp *http;
+	struct evhttp_bound_socket *handle;
 
-int worker_func(void *param) {
-    
-    count_t *c =  param;
-    
-    xd_shmlock_lock(c->lock);
-    *c->count +=1;
-    printf("%d\n", *(c->count));
-    //sleep(1);
-    xd_shmlock_unlock(c->lock);
-    return 0;
+	unsigned short port = 0;
+#ifdef WIN32
+	WSADATA WSAData;
+	WSAStartup(0x101, &WSAData);
+#else
+	if (signal(SIGPIPE, SIG_IGN) == SIG_ERR)
+		return (1);
+#endif
+	if (argc < 2) {
+		syntax();
+		return 1;
+	}
+
+	base = event_base_new();
+	if (!base) {
+		fprintf(stderr, "Couldn't create an event_base: exiting\n");
+		return 1;
+	}
+
+	/* Create a new evhttp object to handle requests. */
+	http = evhttp_new(base);
+	if (!http) {
+		fprintf(stderr, "couldn't create evhttp. Exiting.\n");
+		return 1;
+	}
 }
-
-int *test(){
-
-    int fd = open("/dev/zero", O_RDWR, 0);
-    if (fd == -1) {
-        xd_err("open /dev/zero failed");
-        return NULL;
-    }
-
-    int *c = mmap(0, sizeof(int), 
-                           PROT_READ|PROT_WRITE, 
-                           MAP_SHARED, fd, 0);
-    if (c == MAP_FAILED) {
-//        char err_str_buf[err_str_buf_len];
-//        strerror_r(errno, err_str_buf, err_str_buf_len);
-        
- //       xd_err("map failed: %s\n", err_str_buf);
- xd_errno("mmap failed", errno);
-    }
-
-    close(fd);
-
-    return c;
-}
-
 
 int main(int argv, char **args){
 

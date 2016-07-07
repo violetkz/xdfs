@@ -11,6 +11,7 @@ typedef struct {
 } worker_pool_ctx;
 
 
+worker_pool_ctx *worker_pool_ctx_auto_new();
 worker_pool_ctx *worker_pool_ctx_new(int max_worker_num);
 
 void worker_pool_ctx_free(worker_pool_ctx *ctx); 

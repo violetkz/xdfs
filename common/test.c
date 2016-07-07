@@ -71,7 +71,8 @@ int main(int argv, char **args){
     int *test_prt = (int*)malloc(sizeof(int)); 
     *test_prt = 0;
 
-    worker_pool_ctx *wp = worker_pool_ctx_new(10);
+//worker_pool_ctx *wp = worker_pool_ctx_new(10);
+worker_pool_ctx *wp = worker_pool_ctx_auto_new(10);
 
     if (wp == NULL) { 
         exit(1);
