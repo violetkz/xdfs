@@ -16,7 +16,8 @@ StaticLibrary('base', base_src_files)
 
 libs = [
     'pthread',
-    'base'
+    'base',
+    'event'
 ]
 #libs=[]
 
@@ -29,3 +30,4 @@ else:
     LIBPATH = ["."]
 
 Program('ut', 'test.c',CFLAGS=CFLAGS,LIBS=libs, LIBPATH=LIBPATH)
+Program('xx', 'xd_server_base.c', CFLAGS=CFLAGS,LIBS=libs, LIBPATH=LIBPATH)
