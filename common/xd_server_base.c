@@ -9,11 +9,13 @@
 #include <fcntl.h>
 #include <errno.h>
 
+#include <sys/socket.h>
 #include <event2/buffer.h>
 #include <event2/event.h>
 #include <event2/http.h>
 #include <event2/keyvalq_struct.h>
 #include <event2/util.h>
+
 
 #ifdef WIN32
 #include <winsock2.h>
@@ -283,6 +285,8 @@ send_document_cb(struct evhttp_request *req, void *arg)
 		}
 		evhttp_add_header(evhttp_request_get_output_headers(req),
 		    "Content-Type", type);
+
+        sleep(200);
 		evbuffer_add_file(evb, fd, 0, st.st_size);
 	}
 
@@ -403,21 +407,134 @@ int worker_func(void *param) {
     return 0;
 }
 
+int worker_func2(void *param) {
+   
+    int rc = -1;
+    unsigned int bound_socket_fd = *((unsigned int *)param);
+    
+    struct event_base *base;
+    struct evhttp *http;
+    struct evhttp_bound_socket *handle;
+
+    base = event_base_new();
+    if (!base) {
+        fprintf(stderr, "Couldn't create an event_base: exiting\n");
+        return rc;
+    }
+
+    /* Create a new evhttp object to handle requests. */
+    http = evhttp_new(base);
+    if (!http) {
+        fprintf(stderr, "couldn't create evhttp. Exiting.\n");
+        return rc;
+    }
+
+    rc = evhttp_accept_socket(http, bound_socket_fd);
+    if (rc == -1){
+        xd_err("evhttp_accept_socket failed");
+        return rc;
+    }
+
+    evhttp_set_cb(http, "/dump", dump_request_cb, NULL);
+
+    /* We want to accept arbitrary requests, so we need to set a "generic"
+     * cb.  We can also add callbacks for specific paths. */
+    evhttp_set_gencb(http, send_document_cb, ".");
+
+    event_base_dispatch(base);
+    return rc;
+}
+
+
+int xd_bind(const char *bindaddr, unsigned int port) {
+    int r;
+    int nfd;
+    nfd = socket(AF_INET, SOCK_STREAM, 0);
+    if (nfd < 0) return -1;
+
+    int one = 1;
+    r = setsockopt(nfd, SOL_SOCKET, SO_REUSEADDR, (char *)&one, sizeof(int));
+
+    struct sockaddr_in addr;
+    memset(&addr, 0, sizeof(addr));
+    addr.sin_family = AF_INET;
+    addr.sin_addr.s_addr = INADDR_ANY;
+    addr.sin_port = htons(port);
+
+    r = bind(nfd, (struct sockaddr*)&addr, sizeof(addr));
+    if (r < 0) return -1;
+    r = listen(nfd, 10);
+    if (r < 0) return -1;
+
+    int flags;
+    if ((flags = fcntl(nfd, F_GETFL, 0)) < 0
+            || fcntl(nfd, F_SETFL, flags | O_NONBLOCK) < 0)
+        return -1;
+
+    return nfd;
+}
+struct event_base *new_evhttp(unsigned port) {
+
+    int r = -1;
+    struct event_base *base;
+    struct evhttp *http;
+    struct evhttp_bound_socket *handle;
+
+    //unsigned short port = 0;
+#ifdef WIN32
+    WSADATA WSAData;
+    WSAStartup(0x101, &WSAData);
+#else
+    if (signal(SIGPIPE, SIG_IGN) == SIG_ERR)
+        return NULL;
+#endif
+
+    int bound_socket_fd =  xd_bind("0.0.0.0",9090);
+    xd_debug("%d", bound_socket_fd);
+
+    base = event_base_new();
+    if (!base) {
+        fprintf(stderr, "Couldn't create an event_base: exiting\n");
+        return NULL;
+    }
+
+    /* Create a new evhttp object to handle requests. */
+    http = evhttp_new(base);
+    if (!http) {
+        fprintf(stderr, "couldn't create evhttp. Exiting.\n");
+        return NULL;
+    }
+
+
+    r = evhttp_accept_socket(http, bound_socket_fd);
+    if (r == -1) xd_err("evhttp_accept_socket failed");
+
+    evhttp_set_cb(http, "/dump", dump_request_cb, NULL);
+
+    /* We want to accept arbitrary requests, so we need to set a "generic"
+     * cb.  We can also add callbacks for specific paths. */
+    evhttp_set_gencb(http, send_document_cb, ".");
+
+    return base;
+}
 
 
 int main(int argv, char **args){
 
-     event_enable_debug_mode();
-     event_set_log_callback(stdout_logger);
-    worker_pool_ctx *wp = worker_pool_ctx_new(10);
+    event_enable_debug_mode();
+    event_set_log_callback(stdout_logger);
+    worker_pool_ctx *wp = worker_pool_ctx_new(4);
 
     if (wp == NULL) { 
         exit(1);
     }
-    
-    struct event_base *base = xd_init_event("0.0.0.0", 9090);
 
-    worker_pool_ctx_set_action(wp, worker_func,base);
+    //struct event_base *base = xd_init_event("0.0.0.0", 9090);
+    //struct event_base *base = new_evhttp(9090);
+//    event_base_dispatch(base);
+    unsigned int bound_socket_fd = xd_bind("0.0.0.0", 9090);
+    worker_pool_ctx_set_action(wp, worker_func2,&bound_socket_fd);
+    //worker_pool_ctx_set_action(wp,event_base_dispatch, base);
 
     worker_pool_start(wp);
 
