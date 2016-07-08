@@ -19,7 +19,7 @@ xd_shmlock_t *xd_shmlock_new() {
     if (new_lock == NULL) 
         return NULL;
     
-#if defined(__linux__)
+#if defined(__linux__) || defined(__CYGWIN__)
     int fd = open("/dev/zero", O_RDWR, 0);
     if (fd == -1) {
         xd_err("open /dev/zero failed");
