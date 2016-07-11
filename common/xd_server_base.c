@@ -163,7 +163,7 @@ send_document_cb(struct evhttp_request *req, void *arg)
 
 	printf("Got a GET request for <%s>\n",  uri);
     printf("debug: %d\n", getpid());
-//event_info("~~~~~~~~~~~~~~~~");
+    //event_info("~~~~~~~~~~~~~~~~");
 
 	/* Decode the URI */
 	decoded = evhttp_uri_parse(uri);
@@ -286,7 +286,6 @@ send_document_cb(struct evhttp_request *req, void *arg)
 		evhttp_add_header(evhttp_request_get_output_headers(req),
 		    "Content-Type", type);
 
-        sleep(200);
 		evbuffer_add_file(evb, fd, 0, st.st_size);
 	}
 
@@ -318,15 +317,6 @@ struct event_base *xd_init_event(const char *addr, unsigned int port) {
     struct event_base *base;
     struct evhttp *http;
     struct evhttp_bound_socket *handle;
-
-    //unsigned short port = 0;
-#ifdef WIN32
-    WSADATA WSAData;
-    WSAStartup(0x101, &WSAData);
-#else
-    if (signal(SIGPIPE, SIG_IGN) == SIG_ERR)
-        return NULL;
-#endif
 
     base = event_base_new();
     if (!base) {
@@ -451,9 +441,13 @@ int xd_bind(const char *bindaddr, unsigned int port) {
     int nfd;
     nfd = socket(AF_INET, SOCK_STREAM, 0);
     if (nfd < 0) return -1;
-
+/*
     int one = 1;
     r = setsockopt(nfd, SOL_SOCKET, SO_REUSEADDR, (char *)&one, sizeof(int));
+    if (r == -1) {
+        xd_err("setsockopt reuse failed");
+    }
+*/
 
     struct sockaddr_in addr;
     memset(&addr, 0, sizeof(addr));
@@ -462,15 +456,19 @@ int xd_bind(const char *bindaddr, unsigned int port) {
     addr.sin_port = htons(port);
 
     r = bind(nfd, (struct sockaddr*)&addr, sizeof(addr));
-    if (r < 0) return -1;
-    r = listen(nfd, 10);
-    if (r < 0) return -1;
-
-    int flags;
-    if ((flags = fcntl(nfd, F_GETFL, 0)) < 0
-            || fcntl(nfd, F_SETFL, flags | O_NONBLOCK) < 0)
+    if (r < 0) {
+        xd_err("bind failed");
         return -1;
+    }
+    evutil_make_listen_socket_reuseable(nfd);
+    r = listen(nfd, 10);
+    if (r < 0) {
+        xd_err("bind failed");
+        return -1;
+    }
 
+    evutil_make_socket_nonblocking(nfd);
+    
     return nfd;
 }
 struct event_base *new_evhttp(unsigned port) {
@@ -480,14 +478,6 @@ struct event_base *new_evhttp(unsigned port) {
     struct evhttp *http;
     struct evhttp_bound_socket *handle;
 
-    //unsigned short port = 0;
-#ifdef WIN32
-    WSADATA WSAData;
-    WSAStartup(0x101, &WSAData);
-#else
-    if (signal(SIGPIPE, SIG_IGN) == SIG_ERR)
-        return NULL;
-#endif
 
     int bound_socket_fd =  xd_bind("0.0.0.0",9090);
     xd_debug("%d", bound_socket_fd);
@@ -520,6 +510,15 @@ struct event_base *new_evhttp(unsigned port) {
 
 
 int main(int argv, char **args){
+
+        //unsigned short port = 0;
+#ifdef WIN32
+    WSADATA WSAData;
+    WSAStartup(0x101, &WSAData);
+#else
+//if (signal(SIGPIPE, SIG_IGN) == SIG_ERR)
+//        return NULL;
+#endif
 
     event_enable_debug_mode();
     event_set_log_callback(stdout_logger);
