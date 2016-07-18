@@ -121,7 +121,10 @@ void worker_pool_wait(worker_pool_ctx *ctx) {
                         xd_debug("child process %d exited with return code %d", p, ret);
                     }
                     //todo, handle exit status. 
-                    else if (WIFSIGNALED(status)) { ret = -2; }
+                    else if (WIFSIGNALED(status)) { 
+                        ret = -2; 
+                        xd_debug("child process %d exited with singal", p);
+                    }
                     else if (WIFSTOPPED(status))  { ret = -3; }
                     else                          { ret = -4; }
 
@@ -130,6 +133,22 @@ void worker_pool_wait(worker_pool_ctx *ctx) {
             }
             else {
                 xd_err("func wait failed.");
+            }
+        }
+    }
+}
+
+
+void worker_pool_kill(worker_pool_ctx *ctx, int signal) {
+
+    if (ctx) {
+        int i = 0;
+        for (; i < ctx->max_worker_num; ++i) {
+            pid_t p = ctx->worker_pid_list[i];
+            // see 'man 7 signal'
+            int rc = kill(p, signal);
+            if (rc != 0) {
+                xd_err("send signal %d to child process %d failed", signal, p);
             }
         }
     }
